@@ -1,27 +1,39 @@
-function calculateDecimalValue(value)
-  local linearVal = 10^((value-10) / 20)
-  local decimalVal = linearVal*255
-  return decimalVal
-end
+--*************************************************************
+--*************************************************************
+
+--CHANGE THE TWO VARIBALES BELOW TO YOUR NUMBER OPF SCENES AND CHANNELS NEEDED, SCENE FADER MUST EQUAL THE AMOUNT OF MOMENTARY BUTTONS CONNECTED TO THE CONTROL SCRIPT INPUT
+--CHANNEL FADERS ARE CONNECTED TO CONTROL SCRIPT FIRST AND MUST BE AN INTEGER FADER/KNOB FROM 0 - 255 IN VALUE
+--SCENES FADER ARE CONNECTED TO THE CONTROL SCRIPT INPUT NUMBER : NUM_CHANNELS +1 AND ALSO BE AN INTEGER FADER/KNOB FROM 0 - 255 IN VALUE
+--MASTER FADER MUST BE CONNECTED TO CONTROL SCRIPT INPUT NUMBER : NUM_CHANNELS + NUM_SCENES +1. 
+--MOMENTARY BUTTON ARE USED FOR SCENE STATE RECORDERS THEY ARE CONNECTED TO CONTROL SCRIPT INPUT NUMBER: NUM_CHANNELS + NUM_SCENES +2 
+--OUTPUT CVUSTOM CONTROL LEDS ARE TO BE LINKED UP ON THE OUPUT PINS AFTER THE TEXT OUTPUT. BOTH THESE OUPUT PINS ARE EQUAL TO THE NUMBER OF CHANNELS 
+
+NUM_CHANNELS = 24 -- CHANGE THIS VARIABLE FOR NUMBER OF CHANNELS IN YOUR DESK DESIGN
+NUM_SCENES  = 16 -- CHANGE THIS VARIABLE FOR NUMBER OF SCENE FADERS IN YOUR DESK DESIGN
+
+
+--******************************************************
+--******************************************************
+
 
 -- Create meta classes 
-channels = {}
-local subgroup = {groupId = 0, value = 0, channelStateArray = {}}
-local master = {vale = 0}
-local output = {ouputValue = 0, outputPin = nil, subgroups = {}, channels = {}, master = nil }
+local channels = {}
+local subgroup = {}
+local master = {}
+local output = {}
+
 
 ------------------------
 --CHANNEL CLASS
 ------------------------
 channels.new = function(id, value) 
   local self = {}
-  local value = calculateDecimalValue(value)
+  local value = value
   local inputId = id 
 
 self.setValue = function(_value)
-  value = calculateDecimalValue(_value)
-end
-
+  value = _value
+  end
 self.printValue = function(arg) 
   print(value)
 end
@@ -29,163 +41,187 @@ end
 self.getValue = function()
   return value
 end
+
+self.getId = function()
+  return inputId
+end
 return self
 end
 
 --------------------------
 -- SUBGROUP CLASS
 --------------------------
-function subgroup:new (o, id, _value, _channelStateArray)
-  o = o or {}
-  setmetatable(o, self)
-  self.__index = self
-  self.channelStateArray = initState(_channelStateArray)
-  self.groupId = id 
-  self.value = calculateDecimalValue(_value)
-  return o
-end
-
-function subgroup:mixWithChannels(channelVals)
-  local postMixChannelValues = {}
-  for i=1,6 do
-    local _val = channelVals[i] + self.channelStateArray[i]
-    if _val > 255 then _val = 255 end
-    if self.value ~= 0 then 
-      _val = _val * self.value/255
-    else
-      _val = 0
-    end      
-    table.insert(postMixChannelValues, _val)
-  end
-  return postMixChannelValues  
-end
-
-function initState(controls)
-    local statearray = {}
-    for i=1,6 do
-      table.insert(statearray, calculateDecimalValue(controls[i].value))
-    end
-    return statearray
-  end 
+subgroup.new = function(id, _value)
+  local self = {}
+  local channelStateArray = {}
+  local groupId = id 
+  local value = _value
    
-function subgroup:setSceneState(channelStates)
-  for i=1,6 do 
-    self.channelStateArray[i] = channelStates[i]:getValue()
+self.setSceneState = function(channelStates)
+  for i=1,NUM_CHANNELS do 
+    channelStateArray[i] = channelStates[i].getValue()
   end
 end  
 
-function subgroup:setFaderValue(value)
-  self.value = calculateDecimalValue(value)
+self.setFaderValue = function(_value)
+  value = _value
 end
 
-function subgroup:printValue()
-  print(self.value)
+self.printValue = function()
+  print(value)
 end
 
-function subgroup:printState()
+self.printState = function()
   print("Subgroup state: ")
-  for i=1,6 do
-    print(self.channelStateArray[i])
+  for i=1,NUM_CHANNELS do
+  if channelStateArray[i] == nil then
+    print("nil")
+  else
+    print(channelStateArray[i])
   end
+  end
+  
+end
+
+self.getChannelStateArray = function()
+  return channelStateArray
+end
+
+self.getFaderValue = function()
+  return value
+  end
+return self
 end
 
 -----------------
 --OUTPUT CLASS
 -----------------
-function output:new (o, subgroups, channel, master)
-  o = o or {}
-  setmetatable(o, self)
-  self.__index = self
-  self.outputPin = Controls.Inputs[channel.inputId]
-  self.subgroups = subgroups 
+output.new = function(channel, id, master)
+  self = {}
   self.channel = channel
-  self.ouputValue = Controls.Outputs[channel.inputId].Value
-  return o
-end
-
-function output:setOutputPinValue(event)
+  self.ouputValue = Controls.Outputs[id].Value
+  local master = master
+  
+-- ADDS TOGETHER SCENE STATE AND MAPS IT TO CHANNELS OUPUT
+self.addScenesToOutput = function(subgroupArray, event)
   local _val
   local subgroup
   local subgroupFaderVal
   local prevvalue = 0
-  print("event index inside ouput", event.Index)
-  for i=1,6 do
-    subgroup = self.subgroups[i]
-    subgroupFaderVal = subgroup.value
-    _val = subgroup.channelStateArray[event.Index] + subgroupFaderVal   
-    if _val > 255 then _val = 255 end
-    if subgroupFaderVal ~= 0 then 
-      _val = _val * subgroupFaderVal/255
-    else
-      _val = 0
-    end
-    prevvalue = prevvalue + _val   
-    end
-    self.outputValue = _val   
-    self.outputPin.Value = prevvalue
-    print("val = " , self.outputPin.Index)
- 
+
+  for i=1,NUM_SCENES do
+    subgroup = subgroupArray[i]
+    subgroupFaderVal = subgroup.getFaderValue()
+    if subgroup.getChannelStateArray()[event.Index] ~= nil then 
+      channelValue = subgroup.getChannelStateArray()[event.Index]
+      if subgroupFaderVal == 0 then 
+        _val = 0
+      end
+      _val = math.floor((channelValue * (subgroupFaderVal / 255))+0.5) --ROUND VALUES AND APPLY SCENCE STATE TO OUPUT PROPORTIONAL TO THE SCENES FADER POSITION
+      prevvalue = prevvalue + _val   --ADD TOGETHER SCENES CHANNEL OUTPUTS IF THERE IS MORE THAN ONE OF CHANNELS IN RECORDED SCENE STATE
+     end   
+  end
+  if prevvalue > 255 then prevvalue = 255 end --CATCH ANY ATTEMPT TO EXCEED 255
+  self.outputValue = prevvalue
+  return prevvalue  
 end 
 
-function output:printValue()
+--CALCULATE THE OUPUT BASED ON CHANNELS FADER POSTION AND THE SUMED CHANNEL VALUE OF THE SUBGROUP
+self.calculateOutput = function(subgroupLevel, channelArray, event)
+  if subgroupLevel == nil then subgroupLevel = 0 end
+  local outputValue = channelArray[event.Index].getValue() +  subgroupLevel
+  if outputValue > 255 and subgroupLevel ~= 0 then outputValue  = 255 end 
+  outputValue = math.floor((outputValue * master)+0.5) --ROUND OUPUT VAL
+  return outputValue
+end
+
+self.printValue = function()
   print("ouput= ", self.OutputValue)
 end
 
-master = Controls.Inputs[13].Value
+self.setMaster= function(arg)
+  master = arg
+end
+return self
+end
+
+master = 1
 
 --Create new objects for all classes
-channelArray = {}
+local channelArray = {}
 
-for i=1,6 do
+for i=1,NUM_CHANNELS do
   channelArray[i]= channels.new(i, Controls.Inputs[i].Value)
 end
-for i,v in ipairs(channelArray) do print(i,v:getValue()) end
+--for i,v in ipairs(channelArray) do print(i,v.getValue()) end
 
-subgroupArray = {}
-for i=7,12 do
-  table.insert(subgroupArray, subgroup:new(nil, i, Controls.Inputs[i].Value, channelArray))
+local subgroupArray = {}
+for i= NUM_CHANNELS + 1, (NUM_CHANNELS + NUM_SCENES +1) do
+  table.insert(subgroupArray, subgroup.new(i, Controls.Inputs[i].Value, channelArray))
 end
-for i,v in ipairs(subgroupArray) do print(i,v.value) end
 
-outputArray = {}
-for i=1,6 do
-  table.insert(outputArray, output:new(nil, subgroupArray, channelArray[i], master))
- 
+
+local outputArray = {}
+for i = 1, NUM_CHANNELS do
+  table.insert(outputArray, output.new(channelArray[i].getValue(), channelArray[i].getId(), master)) 
 end
 -----------------------------------------------------
 --EVENT HANDLER FUNCTIONS FOR FADERS + SCENE BUTTONS
 ------------------------------------------------------
 function handleRecordPress(event)
-  print(event.Index)
-  subgroupArray[event.Index-13]:setSceneState(channelArray)
-  print("Scene state recorded: ")
-  subgroupArray[event.Index-13]:printState()
+  local indexCorrection = (NUM_SCENES*2) + 1 -- takes into count nnum of scenes and their buttons plus master fader
+  subgroupArray[event.Index - indexCorrection].setSceneState(channelArray)
+  subgroupArray[event.Index - indexCorrection].printState()
 end
 
 function handleCHFaderChange(event)
-  print(calculateDecimalValue(event.Value))
-  channelArray[event.Index]:setValue(event.Value)
-  outputArray[event.Index]:setOutputPinValue(event)
-  print(Controls.Outputs[event.Index].Value)
-  print("event index = ", event.Index)
+  channelArray[event.Index].setValue(event.Value)
+  local subgroupLevel = outputArray[event.Index].addScenesToOutput(subgroupArray, event)
+  Controls.Outputs[event.Index].Value = outputArray[event.Index].calculateOutput(subgroupLevel, channelArray, event)
+  Controls.Outputs[event.Index].String = Controls.Outputs[event.Index].Value
+  if Controls.Outputs[event.Index].Value > 0 then Controls.Outputs[NUM_CHANNELS + event.Index].Value = true else Controls.Outputs[NUM_CHANNELS +event.Index].Value = false end
 end
 
 function handleSceneFaderChange(event)
-  subgroupArray[event.Index-6]:setFaderValue(event.Value)
-  subgroupArray[event.Index-6]:printState()
+  subgroupArray[event.Index-NUM_SCENES].setFaderValue(event.Value)
+  subgroupArray[event.Index-NUM_SCENES].printState()
+ 
+  for i=1,NUM_CHANNELS do -- iterate over each ouput and calculate the output value
+    e = {["Index"]= i} --SIMULATE AN EVENT 
+    local subgroupLevel = outputArray[i].addScenesToOutput(subgroupArray, e)
+    Controls.Outputs[i].Value = outputArray[i].calculateOutput(subgroupLevel, channelArray, e) 
+    Controls.Outputs[i].String = Controls.Outputs[i].Value
+    if Controls.Outputs[i].Value > 0 then Controls.Outputs[NUM_CHANNELS +i].Value = true else Controls.Outputs[NUM_CHANNELS +i].Value = false end  
+  end
+end
+
+function handleMasterFaderChange(event)
+  master = Controls.Inputs[event.Index].Value/100
+  print("master val", master)
+  
+  for i=1,NUM_CHANNELS do -- iterate over each ouput and calculate the output value
+    ev = {["Index"]= i} --SIMULATE AN EVENT 
+    outputArray[i].setMaster(master)
+    local subgroupLevel = outputArray[i].addScenesToOutput(subgroupArray, ev)
+    Controls.Outputs[i].Value = outputArray[i].calculateOutput(subgroupLevel, channelArray, ev) 
+    Controls.Outputs[i].String = Controls.Outputs[i].Value 
+    if Controls.Outputs[i].Value > 0 then Controls.Outputs[NUM_CHANNELS +i].Value = true else Controls.Outputs[NUM_CHANNELS +i].Value = false end 
+  end
 end
 
 ---------------------------------------------
 --CONNECT INPUTS WITH EVENT HANDLER FUNCTION
 ---------------------------------------------
-for i=1,6 do
+for i=1,NUM_CHANNELS do
   Controls.Inputs[i].EventHandler = handleCHFaderChange
 end
 
-for i=7,12 do
+for i=NUM_CHANNELS+1,NUM_SCENES + NUM_CHANNELS do
   Controls.Inputs[i].EventHandler = handleSceneFaderChange
 end
 
-for i=14,19 do
+for i=NUM_CHANNELS + NUM_SCENES +2,(NUM_CHANNELS + (NUM_SCENES*2) +1) do
   Controls.Inputs[i].EventHandler = handleRecordPress
 end 
+
+Controls.Inputs[NUM_CHANNELS + NUM_SCENES +1].EventHandler = handleMasterFaderChange
