@@ -16,8 +16,7 @@ Within the script there are two variables NUM_CHANNELS and NUM_SCENES, edit thes
 
 * MOMENTARY BUTTON ARE USED FOR SCENE STATE RECORDERS THEY ARE CONNECTED TO CONTROL SCRIPT INPUT NUMBER: NUM_CHANNELS + NUM_SCENES +2 
 
-* OUTPUT CVUSTOM CONTROL LEDS ARE TO BE LINKED UP ON THE OUPUT PINS AFTER THE TEXT OUTPUT. BOTH THESE OUPUT PINS ARE EQUAL TO THE NUMBER OF CHANNELS
+* OUTPUT CUSTOM CONTROL LEDS ARE TO BE LINKED UP ON THE OUPUT PINS AFTER THE TEXT/VALUE OUTPUT. BOTH THESE OUPUT PINS ARE EQUAL TO THE NUMBER OF CHANNELS
 
-* Optional LED compnents can be connected to the remaining outputs and will be associated to channels ouput level. They will turn on to show that a channel has value outputing, by subgroup of channel fader itself.
 
 ![Image of ExamnpleDesign](https://github.com/adamrcarter/Q-SYS-Lighting-Desk/blob/master/ExampleDesign.png)
