@@ -128,7 +128,7 @@ self.addScenesToOutput = function(subgroupArray, event)
       highestvalue = self.findHighest(highestvalue, _val)   --ADD TOGETHER SCENES CHANNEL OUTPUTS IF THERE IS MORE THAN ONE OF CHANNELS IN RECORDED SCENE STATE
      end   
   end
-  if prevvalue > 255 then prevvalue = 255 end --CATCH ANY ATTEMPT TO EXCEED 255
+  if highestvalue > 255 then prevvalue = 255 end --CATCH ANY ATTEMPT TO EXCEED 255
   self.outputValue = prevvalue
   return highestvalue
 end 
