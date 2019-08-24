@@ -176,7 +176,7 @@ end
 --EVENT HANDLER FUNCTIONS FOR FADERS + SCENE BUTTONS
 ------------------------------------------------------
 function handleRecordPress(event)
-  local indexCorrection = (NUM_SCENES*2) + 1 -- takes into count nnum of scenes and their buttons plus master fader
+  local indexCorrection = (NUM_SCENES + NUM_CHANNELS) + 1 -- takes into count nnum of scenes and their buttons plus master fader
   subgroupArray[event.Index - indexCorrection].setSceneState(channelArray)
   subgroupArray[event.Index - indexCorrection].printState()
 end
@@ -190,8 +190,8 @@ function handleCHFaderChange(event)
 end
 
 function handleSceneFaderChange(event)
-  subgroupArray[event.Index-NUM_SCENES].setFaderValue(event.Value)
-  subgroupArray[event.Index-NUM_SCENES].printState()
+  subgroupArray[event.Index-NUM_CHANNELS].setFaderValue(event.Value)
+  subgroupArray[event.Index-NUM_CHANNELS].printState()
  
   for i=1,NUM_CHANNELS do -- iterate over each ouput and calculate the output value
     e = {["Index"]= i} --SIMULATE AN EVENT 
@@ -204,7 +204,6 @@ end
 
 function handleMasterFaderChange(event)
   master = Controls.Inputs[event.Index].Value/100
-  print("master val", master)
   
   for i=1,NUM_CHANNELS do -- iterate over each ouput and calculate the output value
     ev = {["Index"]= i} --SIMULATE AN EVENT 
