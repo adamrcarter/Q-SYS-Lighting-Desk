@@ -101,13 +101,20 @@ output.new = function(channel, id, master)
   self.channel = channel
   self.ouputValue = Controls.Outputs[id].Value
   local master = master
-  
+
+self.findHighest = function(v1, v2)
+  if v1 > v2 then
+    return v1
+  else
+    return v2
+  end
+end
 -- ADDS TOGETHER SCENE STATE AND MAPS IT TO CHANNELS OUPUT
 self.addScenesToOutput = function(subgroupArray, event)
   local _val
   local subgroup
   local subgroupFaderVal
-  local prevvalue = 0
+  local highestvalue = 0
 
   for i=1,NUM_SCENES do
     subgroup = subgroupArray[i]
@@ -118,19 +125,19 @@ self.addScenesToOutput = function(subgroupArray, event)
         _val = 0
       end
       _val = math.floor((channelValue * (subgroupFaderVal / 255))+0.5) --ROUND VALUES AND APPLY SCENCE STATE TO OUPUT PROPORTIONAL TO THE SCENES FADER POSITION
-      prevvalue = prevvalue + _val   --ADD TOGETHER SCENES CHANNEL OUTPUTS IF THERE IS MORE THAN ONE OF CHANNELS IN RECORDED SCENE STATE
+      highestvalue = self.findHighest(highestvalue, _val)   --ADD TOGETHER SCENES CHANNEL OUTPUTS IF THERE IS MORE THAN ONE OF CHANNELS IN RECORDED SCENE STATE
      end   
   end
-  if prevvalue > 255 then prevvalue = 255 end --CATCH ANY ATTEMPT TO EXCEED 255
+  --if prevvalue > 255 then prevvalue = 255 end --CATCH ANY ATTEMPT TO EXCEED 255
   self.outputValue = prevvalue
-  return prevvalue  
+  return highestvalue
 end 
 
 --CALCULATE THE OUPUT BASED ON CHANNELS FADER POSTION AND THE SUMED CHANNEL VALUE OF THE SUBGROUP
 self.calculateOutput = function(subgroupLevel, channelArray, event)
   if subgroupLevel == nil then subgroupLevel = 0 end
-  local outputValue = channelArray[event.Index].getValue() +  subgroupLevel
-  if outputValue > 255 and subgroupLevel ~= 0 then outputValue  = 255 end 
+  local outputValue = self.findHighest(channelArray[event.Index].getValue(),  subgroupLevel)
+  --if outputValue > 255 and subgroupLevel ~= 0 then outputValue  = 255 end 
   outputValue = math.floor((outputValue * master)+0.5) --ROUND OUPUT VAL
   return outputValue
 end
