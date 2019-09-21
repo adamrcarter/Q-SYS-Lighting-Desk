@@ -1,7 +1,7 @@
 # Q-SYS-Lighting-Desk
 A virtual lighting desk for QSC Q-SYS system.
 # What is this?
-This is a virtual lighting desk for Q-SYS that will output a maximum of 512 channels of decimal binary ranging from 0-255 in value. This mixer also has a scenes that are programmable by lifting the faders and pressing the momentary button asscociated with the scenes fader. The script then be used via sACN or Art-Net to communicate with your lighting equipment.
+This is a virtual lighting desk for Q-SYS that will output decimal binary ranging from 0-255 in value. This mixer also has a scenes that are programmable by lifting the faders and pressing the momentary button asscociated with the scenes fader. The script then be used via sACN or Art-Net to communicate with your lighting equipment.
 
 # How to Use
 Either copy the design in the .qsys file or copy the script into a control script component to implement your own design.
